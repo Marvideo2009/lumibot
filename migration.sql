@@ -3,5 +3,6 @@ CREATE TABLE IF NOT EXISTS lumibot_pages (
     url TEXT NOT NULL UNIQUE,
     titre TEXT,
     description TEXT,
-    horodatage DATETIME DEFAULT CURRENT_TIMESTAMP
+    horodatage DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FULLTEXT(titre, description)
 )
