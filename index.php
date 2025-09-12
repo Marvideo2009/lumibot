@@ -118,5 +118,13 @@ if ($action === "add") {
     unlink($tmpFile);
     exit;
 } else {
-    echo json_encode(["error" => "Unknown action"]);
+    echo json_encode(["action" => [
+        "add" => "To add pages",
+        "search" => "To search with the argument q to put the request",
+        "export" => "Export th database to a db file"
+    ], "Example" => [
+        "https://marvideo.fr/lumina/?action=add",
+        "https://marvideo.fr/lumina/?action=search&q=request",
+        "https://marvideo.fr/lumina/?action=export"
+    ]]);
 }
