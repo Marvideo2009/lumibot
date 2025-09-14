@@ -52,7 +52,7 @@ async def rebuild_fts5():
 def human_readable_size(size_bytes: int) -> str:
     if size_bytes is None:
         return "Unknown"
-    for unit in ["O", "KO", "MO", "GO", "TO"]:
+    for unit in ["B", "KB", "MB", "GB", "TB"]:
         if size_bytes < 1024:
             return f"{size_bytes:.2f} {unit}"
         size_bytes /= 1024
