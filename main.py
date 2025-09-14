@@ -46,9 +46,12 @@ async def rebuild_fts5():
 # --- Scheduler ---
 scheduler = AsyncIOScheduler()
 
-# Planifie la réindexation tous les jours à minuit
-scheduler.add_job(rebuild_fts5, "cron", hour=0, minute=0)
-scheduler.start()
+@app.on_event("startup")
+async def start_scheduler():
+    # Planifie la réindexation tous les jours à minuit
+    scheduler.add_job(rebuild_fts5, "cron", hour=0, minute=0)
+    scheduler.start()
+    print("Scheduler démarré !")
 
 # --- ROUTES ---
 @app.post("/add")
