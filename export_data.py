@@ -4,7 +4,8 @@ from config import *
 import asyncio
 import os
 
-API_URL = "https://marvideo.fr/lumina/?action=add"
+# API_URL = "https://marvideo.fr/lumina/?action=add"
+API_URL = "https://lumina.marvideo.fr/add"
 BATCH_SIZE = 100
 
 async def get_pages():
