@@ -1,6 +1,7 @@
+import os
 from fastapi import BackgroundTasks, Depends, FastAPI, Query, Request, HTTPException
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 from typing import List, Union
 import aiosqlite
@@ -40,6 +41,11 @@ async def rebuild_fts5():
             "INSERT INTO documents (url, titre, description) VALUES (?, ?, ?)",
             docs
         )
+        now = datetime.now().isoformat()
+        await db.execute("""
+            INSERT INTO meta (key, value) VALUES ('last_reindex', ?)
+            ON CONFLICT(key) DO UPDATE SET value=excluded.value
+        """, (now,))
         await db.commit()
     print(f"[{datetime.now()}] [FTS5] Index reconstruit pour {len(docs)} documents")
 
@@ -48,6 +54,7 @@ scheduler = AsyncIOScheduler()
 
 @app.on_event("startup")
 async def start_scheduler():
+    await database.init_db(DB_PATH)
     # Planifie la réindexation tous les jours à minuit
     scheduler.add_job(rebuild_fts5, "cron", hour=0, minute=0)
     scheduler.start()
@@ -74,6 +81,11 @@ async def add_documents(pages: Union[Page, List[Page]], request: Request, backgr
                     description=excluded.description
             """, docs)
 
+            now = datetime.now().isoformat()
+            await db.execute("""
+                INSERT INTO meta (key, value) VALUES ('last_add', ?)
+                ON CONFLICT(key) DO UPDATE SET value=excluded.value
+            """, (now,))
             await db.commit()
         finally:
             await database.fermer_db(db)
@@ -113,13 +125,16 @@ async def home():
                     {
                         "add":"To add pages",
                         "search":"To search with the argument q to put the request",
-                        "export":"Export th database to a db file"
+                        "download":"Download the database to a db file",
+                        "reindex":"Reindex all the pages",
+                        "info":"Get the info",
                     },
                     "Example":[
                         "https://lumina.marvideo.fr/add",
                         "https://lumina.marvideo.fr/search?q=request",
                         "https://lumina.marvideo.fr/download",
-                        "https://lumina.marvideo.fr/reindex?password=motdepasse"
+                        "https://lumina.marvideo.fr/reindex?password=motdepasse",
+                        "https://lumina.marvideo.fr/info"
                     ]
                 }
     except Exception as e:
@@ -135,6 +150,29 @@ async def reindex(background_tasks: BackgroundTasks, password: str = Query(...))
         raise HTTPException(status_code=403, detail="Mot de passe invalide")
     background_tasks.add_task(rebuild_fts5)
     return {"status": "ok", "message": "Réindexation en cours en arrière-plan"}
+
+@app.get("/info")
+async def db_info():
+    meta_data = {}
+
+    async with aiosqlite.connect(DB_PATH) as db:
+        async with db.execute("SELECT key, value FROM meta") as cursor:
+            rows = await cursor.fetchall()
+            meta_data = {row[0]: row[1] for row in rows}
+
+        async with db.execute("SELECT COUNT(*) FROM documents") as cursor:
+            total_docs = (await cursor.fetchone())[0]
+
+    try:
+        db_size = os.path.getsize(DB_PATH)
+    except:
+        db_size = None
+
+    return {
+        "total_documents": total_docs,
+        "db_size_bytes": db_size,
+        "meta": meta_data
+    }
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=3060)

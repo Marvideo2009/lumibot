@@ -22,6 +22,12 @@ async def init_db(chemin_bdd: str) -> aiosqlite.Connection:
             ''')
         except Exception as e:
             print("err:", e)
+        await conn.execute('''
+            CREATE TABLE IF NOT EXISTS meta (
+                key TEXT PRIMARY KEY,
+                value TEXT
+            );
+        ''')
         await conn.commit()
 
     conn = await aiosqlite.connect(chemin_bdd)
