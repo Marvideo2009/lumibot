@@ -63,7 +63,8 @@ scheduler = AsyncIOScheduler()
 
 @app.on_event("startup")
 async def start_scheduler():
-    await database.init_db(DB_PATH)
+    conn = await database.init_db(DB_PATH)
+    await database.fermer_db(conn)
     # Planifie la réindexation tous les jours à minuit
     scheduler.add_job(rebuild_fts5, "cron", hour=0, minute=0)
     scheduler.start()
