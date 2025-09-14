@@ -49,6 +49,15 @@ async def rebuild_fts5():
         await db.commit()
     print(f"[{datetime.now()}] [FTS5] Index reconstruit pour {len(docs)} documents")
 
+def human_readable_size(size_bytes: int) -> str:
+    if size_bytes is None:
+        return "Unknown"
+    for unit in ["O", "KO", "MO", "GO", "TO"]:
+        if size_bytes < 1024:
+            return f"{size_bytes:.2f} {unit}"
+        size_bytes /= 1024
+    return f"{size_bytes:.2f} PB"
+
 # --- Scheduler ---
 scheduler = AsyncIOScheduler()
 
@@ -165,12 +174,15 @@ async def db_info():
 
     try:
         db_size = os.path.getsize(DB_PATH)
+        db_size_human = human_readable_size(db_size)
     except:
         db_size = None
+        db_size_human = "Unknown"
 
     return {
         "total_documents": total_docs,
         "db_size_bytes": db_size,
+        "db_size": db_size_human,
         "meta": meta_data
     }
 
