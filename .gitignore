@@ -2,3 +2,4 @@ database/
 __pycache__/
 data.db
 lumibot_pages.csv
+blocked-site.txt

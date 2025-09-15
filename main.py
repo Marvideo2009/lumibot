@@ -4,10 +4,12 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 from typing import List, Union
+from config import *
 import aiosqlite
 import datetime
 import database
 import uvicorn
+import utils
 
 app = FastAPI()
 DB_PATH = "data.db"
@@ -37,6 +39,13 @@ async def rebuild_fts5():
         async with db.execute("SELECT url, titre, description FROM documents_data") as cursor:
             rows = await cursor.fetchall()
         docs = [(row[0], row[1], row[2]) for row in rows]
+        for doc in docs:
+            if utils.est_blackliste(doc[0]):
+                return
+            if utils.contient_motif_interdit(doc[0], MOTIFS_INTERDITS):
+                return
+            if any(doc[0].lower().endswith(ext) for ext in EXTENSIONS_FICHIERS_INTERDITES):
+                return
         await db.executemany(
             "INSERT INTO documents (url, titre, description) VALUES (?, ?, ?)",
             docs
@@ -48,6 +57,9 @@ async def rebuild_fts5():
         """, (now,))
         await db.commit()
     print(f"[{datetime.now()}] [FTS5] Index reconstruit pour {len(docs)} documents")
+
+async def validate_url(url):
+    print
 
 def human_readable_size(size_bytes: int) -> str:
     if size_bytes is None:
